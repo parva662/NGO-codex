@@ -5,11 +5,13 @@ import android.os.Bundle;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 import android.content.Intent;
 import android.net.Uri;
 import android.graphics.pdf.PdfDocument;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextDirectionHeuristics;
@@ -32,13 +34,16 @@ public class MainActivity extends Activity {
   @Override public void onCreate(Bundle b) {
     super.onCreate(b);
     webView = new WebView(this);
+    webView.setBackgroundColor(Color.rgb(245,247,251));
     setContentView(webView);
     WebSettings s = webView.getSettings();
     s.setJavaScriptEnabled(true);
     s.setDomStorageEnabled(true);
     s.setAllowFileAccess(true);
+    s.setDefaultTextEncodingName("utf-8");
+    webView.setWebViewClient(new WebViewClient());
     webView.addJavascriptInterface(new Bridge(), "Android");
-    webView.loadUrl("file:///android_asset/v5.html");
+    webView.loadUrl("file:///android_asset/v1.html");
   }
 
   @Override public void onBackPressed() {
@@ -51,7 +56,7 @@ public class MainActivity extends Activity {
     in.setType(mime);
     in.putExtra(Intent.EXTRA_STREAM, uri);
     in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-    startActivity(Intent.createChooser(in, "ارسال فایل پرونده"));
+    startActivity(Intent.createChooser(in, "ارسال فایل پرونده حق‌یار"));
   }
 
   private String safeName(String name) {
@@ -78,21 +83,15 @@ public class MainActivity extends Activity {
       }
       String mime = getContentResolver().getType(uri);
       if (mime == null) mime = "application/octet-stream";
-      File dir = new File(getExternalFilesDir(null), "attachments");
-      dir.mkdirs();
+      File dir = new File(getExternalFilesDir(null), "attachments"); dir.mkdirs();
       File out = new File(dir, System.currentTimeMillis() + "-" + safeName(name));
       try (InputStream is = getContentResolver().openInputStream(uri); FileOutputStream os = new FileOutputStream(out)) {
-        if (is != null) {
-          byte[] buf = new byte[8192]; int n;
-          while ((n = is.read(buf)) > 0) os.write(buf, 0, n);
-        }
+        if (is != null) { byte[] buf = new byte[8192]; int n; while ((n = is.read(buf)) > 0) os.write(buf, 0, n); }
       }
       String js = "window.onHaghyarFilePicked(" + JSONObject.quote(pendingQuestionId) + "," + JSONObject.quote(name) + "," + JSONObject.quote(mime) + "," + size + "," + JSONObject.quote(out.getAbsolutePath()) + ")";
       webView.evaluateJavascript(js, null);
       Toast.makeText(this, "مدرک به پرونده اضافه شد", Toast.LENGTH_SHORT).show();
-    } catch (Exception e) {
-      Toast.makeText(this, "خطا در افزودن مدرک", Toast.LENGTH_LONG).show();
-    }
+    } catch (Exception e) { Toast.makeText(this, "خطا در افزودن مدرک", Toast.LENGTH_LONG).show(); }
   }
 
   public class Bridge {
@@ -117,20 +116,18 @@ public class MainActivity extends Activity {
       try {
         File dir = new File(getExternalFilesDir(null), "exports"); dir.mkdirs();
         File f = new File(dir, name);
-        final int w=595,h=842,m=44,cw=w-m*2,ch=h-m*2;
+        final int w=595,h=842,m=42,cw=w-m*2,ch=h-m*2;
         TextPaint paint=new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
-        paint.setColor(android.graphics.Color.rgb(25,31,42));
-        paint.setTextSize(12.5f);
-        paint.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.NORMAL));
+        paint.setColor(Color.rgb(20,31,46)); paint.setTextSize(12.5f); paint.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL));
         PdfDocument pdf=new PdfDocument(); String rem=content==null?"":content; int pn=1;
         while(!rem.isEmpty()) {
-          StaticLayout full=StaticLayout.Builder.obtain(rem,0,rem.length(),paint,cw).setAlignment(Layout.Alignment.ALIGN_NORMAL).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL).setLineSpacing(3.5f,1.12f).setIncludePad(true).build();
+          StaticLayout full=StaticLayout.Builder.obtain(rem,0,rem.length(),paint,cw).setAlignment(Layout.Alignment.ALIGN_NORMAL).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL).setLineSpacing(3.5f,1.14f).setIncludePad(true).build();
           int fit=full.getLineCount()-1;
           for(int i=0;i<full.getLineCount();i++){if(full.getLineBottom(i)>ch){fit=Math.max(0,i-1);break;}}
           int end=full.getLineEnd(fit); if(end<=0||end>rem.length())end=Math.min(rem.length(),1000);
           String pt=rem.substring(0,end).trim(); rem=rem.substring(end).trim();
-          StaticLayout pl=StaticLayout.Builder.obtain(pt,0,pt.length(),paint,cw).setAlignment(Layout.Alignment.ALIGN_NORMAL).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL).setLineSpacing(3.5f,1.12f).setIncludePad(true).build();
-          PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(w,h,pn).create(); PdfDocument.Page page=pdf.startPage(info); Canvas canvas=page.getCanvas(); canvas.save(); canvas.translate(m,m); pl.draw(canvas); canvas.restore(); pdf.finishPage(page); pn++;
+          StaticLayout pl=StaticLayout.Builder.obtain(pt,0,pt.length(),paint,cw).setAlignment(Layout.Alignment.ALIGN_NORMAL).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL).setLineSpacing(3.5f,1.14f).setIncludePad(true).build();
+          PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(w,h,pn).create(); PdfDocument.Page page=pdf.startPage(info); Canvas canvas=page.getCanvas(); canvas.drawColor(Color.WHITE); canvas.save(); canvas.translate(m,m); pl.draw(canvas); canvas.restore(); pdf.finishPage(page); pn++;
         }
         if(pn==1){PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(w,h,1).create();PdfDocument.Page page=pdf.startPage(info);pdf.finishPage(page);}
         try(FileOutputStream os=new FileOutputStream(f)){pdf.writeTo(os);} pdf.close(); shareFile(f,"application/pdf");
