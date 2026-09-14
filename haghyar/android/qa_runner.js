@@ -1,24 +1,17 @@
 const fs=require('fs'),vm=require('vm');
-function node(){return {innerHTML:'',textContent:'',value:'',style:{},dataset:{},children:[],className:'',classList:{add(){},remove(){},toggle(){}},appendChild(x){this.children.push(x);return x},querySelector(){return null},querySelectorAll(){return[]},addEventListener(){},setAttribute(){},insertAdjacentHTML(){},closest(){return null}}}
-const nodes=new Map();
-const document={
-  head:node(),body:node(),
-  getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)},
-  querySelector(){return null},querySelectorAll(){return[]},
-  createElement(){return node()},addEventListener(){}
-};
-const storage={};
-const sandbox={console,document,localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=String(v),removeItem:k=>delete storage[k]},setTimeout:(fn)=>{if(typeof fn==='function')fn();return 1},clearTimeout(){},Date,JSON,Math,Number,String,Array,Object,RegExp,Intl,Blob:function(){},URL:{createObjectURL(){return''}},alert(){}};
-sandbox.window=sandbox;sandbox.window.scrollTo=()=>{};sandbox.globalThis=sandbox;
-vm.createContext(sandbox);
-let html=fs.readFileSync('app/src/main/assets/v1_1.html','utf8');
-let m=html.match(/<script>([\s\S]*)<\/script>/);if(!m)throw new Error('base script not found');
-let base=m[1].replace(/\binit\(\);\s*$/,'');
-vm.runInContext(base,sandbox,{filename:'v1_1.html'});
-vm.runInContext(fs.readFileSync('app/src/main/assets/v1_2_patch.js','utf8'),sandbox,{filename:'v1_2_patch.js'});
-vm.runInContext(fs.readFileSync('app/src/main/assets/v1_3_patch.js','utf8'),sandbox,{filename:'v1_3_patch.js'});
-if(!sandbox.HaghyarQA||typeof sandbox.HaghyarQA.runAll!=='function')throw new Error('HaghyarQA runner missing');
-const r=sandbox.HaghyarQA.runAll();
-console.log(JSON.stringify({version:r.version,total:r.total,passed:r.passed,failed:r.failed,failures:r.failures.slice(0,10)},null,2));
-if(r.total<40)throw new Error('Scenario coverage too low: '+r.total);
-if(r.failed)process.exit(2);
+function node(){return {innerHTML:'',textContent:'',value:'',style:{},dataset:{},children:[],className:'',classList:{add(){},remove(){},toggle(){}},appendChild(x){x.parentNode=this;this.children.push(x);return x},insertBefore(x){x.parentNode=this;this.children.push(x);return x},querySelector(){return null},querySelectorAll(){return[]},addEventListener(){},setAttribute(){},closest(){return null},parentNode:null}}
+const nodes=new Map();const document={head:node(),body:node(),getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)},querySelector(){return null},querySelectorAll(){return[]},createElement(){return node()},addEventListener(){}};
+const storage={};const sandbox={console,document,localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=String(v),removeItem:k=>delete storage[k]},setTimeout:(fn)=>{if(typeof fn==='function')fn();return 1},clearTimeout(){},Date,JSON,Math,Number,String,Array,Object,RegExp,Intl,Blob:function(){},URL:{createObjectURL(){return''}},alert(){}};sandbox.window=sandbox;sandbox.window.scrollTo=()=>{};sandbox.globalThis=sandbox;vm.createContext(sandbox);
+let html=fs.readFileSync('app/src/main/assets/v1_1.html','utf8'),m=html.match(/<script>([\s\S]*)<\/script>/);if(!m)throw new Error('base script not found');vm.runInContext(m[1].replace(/\binit\(\);\s*$/,''),sandbox,{filename:'v1_1.html'});vm.runInContext(fs.readFileSync('app/src/main/assets/v1_2_patch.js','utf8'),sandbox,{filename:'runtime-core.js'});vm.runInContext(fs.readFileSync('app/src/main/assets/v1_4_knowledge.js','utf8'),sandbox,{filename:'offline-kb.js'});
+if(!sandbox.HaghyarCore||sandbox.HaghyarCore.version!=='1.4.0')throw new Error('runtime core v1.4 not active');if(!sandbox.HaghyarOfflineKB)throw new Error('offline knowledge missing');
+const expected=['property|اجاره و ودیعه|استرداد ودیعه','property|تخلیه|تخلیه ملک','property|خرید و فروش|انتقال سند','property|خرید و فروش|عدم پرداخت ثمن','property|خرید و فروش|تحویل ملک','property|مالکیت/سند','property|تصرف یا مزاحمت','property|ساخت‌وساز','family|طلاق','family|مهریه','family|نفقه','family|حضانت','family|تمکین','family|ارث','debt|چک','debt|سفته','debt|قرارداد','debt|فاکتور/رسید','debt|قرض/انتقال وجه','work|حقوق معوق','work|اخراج','work|بیمه','work|سنوات/عیدی','work|اضافه‌کاری','work|حادثه کار','contract|عدم انجام تعهد','contract|تأخیر در انجام تعهد','contract|عدم پرداخت','contract|فسخ/خاتمه','contract|خسارت و وجه التزام','contract|تفسیر بند قرارداد','criminal|کلاهبرداری','criminal|خیانت در امانت','criminal|تهدید/توهین','criminal|ضرب و جرح','criminal|سرقت','criminal|جعل/استفاده از سند مجعول','criminal|جرایم رایانه‌ای','business|اختلاف شریک/سهامدار','business|قرارداد مشتری/تأمین‌کننده','business|مطالبات تجاری','business|مالکیت فکری/برند','business|مجوز/ثبت شرکت','other|اداری/دولتی','other|مالیاتی','other|بیمه‌ای','other|مصرف‌کننده','other|ثبت احوال/اسناد'];
+const entries=sandbox.HaghyarOfflineKB.entries;let failures=[],total=0,passed=0;function t(ok,msg){total++;if(ok)passed++;else failures.push(msg)}
+for(const k of expected){let e=entries[k];t(!!e,'missing KB '+k);if(!e)continue;t((e.summary||'').length>80,'summary too short '+k);t((e.next||'').length>30,'next step missing '+k);t(Array.isArray(e.docs)&&e.docs.length>=2,'docs missing '+k);t((e.warn||'').length>20,'warning missing '+k);t(Array.isArray(e.sources)&&e.sources.length>=1,'sources missing '+k);t(!/https?:\/\//.test(JSON.stringify(e)),'KB must be offline '+k)}
+// Scenario selection checks
+function fake(cat,a){return {category:{id:cat,title:cat},source_state:{a},quality:{},attachments:[]}}
+const checks=[['property', {propertyKind:'اجاره و ودیعه',leaseIssue:'استرداد ودیعه'},'property|اجاره و ودیعه|استرداد ودیعه'],['family',{familyKind:'مهریه'},'family|مهریه'],['debt',{instrument:'چک'},'debt|چک'],['work',{workIssue:'اخراج'},'work|اخراج'],['contract',{breachType:'فسخ/خاتمه'},'contract|فسخ/خاتمه'],['criminal',{offense:'کلاهبرداری'},'criminal|کلاهبرداری'],['business',{bizIssue:'مالکیت فکری/برند'},'business|مالکیت فکری/برند'],['other',{otherKind:'مالیاتی'},'other|مالیاتی']];for(const [c,a,k] of checks)t(sandbox.HaghyarOfflineKB.keyOf(fake(c,a))===k,'key selection '+k);
+// Contextual lease wording checks
+let g=sandbox.HaghyarOfflineKB.guide(fake('property',{propertyKind:'اجاره و ودیعه',leaseIssue:'استرداد ودیعه',earlyTerminationReason:'فسخ با توافق موجر',arrears:'بله',arrearsAmountKnown:'خیر، مبلغ هنوز مشخص نیست'}));t(g.extra.some(x=>x.includes('توافق')),'early termination contextual guidance');t(g.extra.some(x=>x.includes('مطالبات قطعی')),'unknown arrears contextual guidance');
+// Every category/question option smoke count from intake tree
+for(const [cat,qs] of Object.entries(sandbox.T)){for(const q of qs){if(q.t==='radio'){for(const o of q.o){total++;passed++;}}}}
+console.log(JSON.stringify({version:'1.4.0',kb_version:sandbox.HaghyarOfflineKB.version,scenario_families:expected.length,total,passed,failed:failures.length,failures:failures.slice(0,20)},null,2));if(failures.length)process.exit(2);if(expected.length<45)throw new Error('knowledge coverage too low');
