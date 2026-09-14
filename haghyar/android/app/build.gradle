@@ -5,7 +5,8 @@ android {
     compileSdk 35
     signingConfigs {
         haghyarDev {
-            storeFile file('../haghyar-dev.jks')
+            // Stable project keystore. Keep this file/key unchanged for all future APKs.
+            storeFile rootProject.file('haghyar-dev.jks')
             storePassword 'haghyar-dev-2026'
             keyAlias 'haghyar'
             keyPassword 'haghyar-dev-2026'
