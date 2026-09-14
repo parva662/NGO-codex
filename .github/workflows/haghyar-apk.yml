@@ -26,7 +26,7 @@ jobs:
           miss=[x for x in required if x not in base]
           miss += [x for x in ['1.4.0','HaghyarLegalIntake/8.0','earlyTerminationReason','arrearsAmountKnown','ready_for_ai','file:///android_asset/v1_4_knowledge.js'] if x not in core]
           miss += [x for x in ['IR-offline-2026.09.15','راهنمای حقوقی آفلاین','property|اجاره و ودیعه|استرداد ودیعه','criminal|کلاهبرداری','other|مالیاتی'] if x not in kb]
-          if miss: raise SystemExit('Missing v1.4 runtime components: '+', '.join(miss))
+          if miss: raise SystemExit('Missing runtime components: '+', '.join(miss))
           m=re.search(r'<script>(.*)</script>',base,re.S)
           if not m: raise SystemExit('Base script missing')
           Path('/tmp/base.js').write_text(m.group(1),encoding='utf-8')
@@ -53,14 +53,42 @@ jobs:
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
-      - name: Build debug APK
+      - name: Restore persistent Haghyar signing key
+        env:
+          HAGHYAR_KEYSTORE_B64: ${{ secrets.HAGHYAR_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$HAGHYAR_KEYSTORE_B64" ]; then
+            echo "$HAGHYAR_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/haghyar-release.jks"
+            echo "HAGHYAR_USE_RELEASE_KEY=true" >> "$GITHUB_ENV"
+          else
+            echo "No persistent release key configured; using the repository-scoped persistent debug keystore."
+            mkdir -p "$HOME/.android"
+            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Haghyar Offline,O=Haghyar,C=IR"
+            echo "HAGHYAR_USE_RELEASE_KEY=false" >> "$GITHUB_ENV"
+          fi
+      - name: Build APK
         working-directory: haghyar/android
-        run: gradle assembleDebug --stacktrace
+        env:
+          HAGHYAR_STORE_FILE: ${{ runner.temp }}/haghyar-release.jks
+          HAGHYAR_STORE_PASSWORD: ${{ secrets.HAGHYAR_STORE_PASSWORD }}
+          HAGHYAR_KEY_ALIAS: ${{ secrets.HAGHYAR_KEY_ALIAS }}
+          HAGHYAR_KEY_PASSWORD: ${{ secrets.HAGHYAR_KEY_PASSWORD }}
+        run: |
+          if [ "$HAGHYAR_USE_RELEASE_KEY" = "true" ]; then
+            gradle assembleRelease --stacktrace
+          else
+            gradle assembleDebug --stacktrace
+          fi
       - name: Rename APK
-        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.4.0.apk
+        run: |
+          if [ "$HAGHYAR_USE_RELEASE_KEY" = "true" ]; then
+            cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-v1.5.0.apk
+          else
+            cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.5.0.apk
+          fi
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Haghyar-APK-v1.4.0
-          path: Haghyar-v1.4.0.apk
+          name: Haghyar-APK-v1.5.0
+          path: Haghyar-v1.5.0.apk
           if-no-files-found: error
