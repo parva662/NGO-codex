@@ -19,17 +19,20 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re
-          p=Path('haghyar/android/app/src/main/assets/v1_1.html')
-          s=p.read_text(encoding='utf-8')
-          required=['property:','family:','debt:','work:','contract:','criminal:','business:','other:','HaghyarLegalIntake/5.0','v1.1.0','audit()','risk(q)','deadlineSource','jalali_to_gregorian','saveDocx','بسته ZIP پرونده']
-          missing=[x for x in required if x not in s]
-          if missing: raise SystemExit('Missing required engine components: '+', '.join(missing))
-          m=re.search(r'<script>(.*)</script>',s,re.S)
-          if not m: raise SystemExit('Script block missing')
-          Path('/tmp/haghyar-engine.js').write_text(m.group(1),encoding='utf-8')
-          print('Engine structure OK; HTML bytes:',len(s.encode('utf-8')))
+          base=Path('haghyar/android/app/src/main/assets/v1_1.html').read_text(encoding='utf-8')
+          patch=Path('haghyar/android/app/src/main/assets/v1_2_patch.js').read_text(encoding='utf-8')
+          required_base=['property:','family:','debt:','work:','contract:','criminal:','business:','other:','HaghyarLegalIntake/5.0','jalali_to_gregorian','handoverClause','leaseEnd']
+          required_patch=['1.2.0','HaghyarLegalIntake/6.0','editIssue','showHelp','ready_for_ai','ready_for_final_document','earlyTerminationReason','savePdfBundle']
+          miss=[x for x in required_base if x not in base]+[x for x in required_patch if x not in patch]
+          if miss: raise SystemExit('Missing required v1.2 components: '+', '.join(miss))
+          m=re.search(r'<script>(.*)</script>',base,re.S)
+          if not m: raise SystemExit('Base script missing')
+          Path('/tmp/haghyar-base.js').write_text(m.group(1),encoding='utf-8')
+          Path('/tmp/haghyar-patch.js').write_text(patch,encoding='utf-8')
+          print('Base and v1.2 patch structure OK')
           PY
-          node --check /tmp/haghyar-engine.js
+          node --check /tmp/haghyar-base.js
+          node --check /tmp/haghyar-patch.js
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -48,10 +51,10 @@ jobs:
         working-directory: haghyar/android
         run: gradle assembleDebug --stacktrace
       - name: Rename APK
-        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.1.0.apk
+        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.2.0.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Haghyar-APK-v1.1.0
-          path: Haghyar-v1.1.0.apk
+          name: Haghyar-APK-v1.2.0
+          path: Haghyar-v1.2.0.apk
           if-no-files-found: error
