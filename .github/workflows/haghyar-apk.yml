@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Restore stable development signing key
+        run: base64 --decode haghyar/android/dev-signing-keystore.b64 > haghyar/android/haghyar-dev.jks
       - name: Validate runtime and offline knowledge
         run: |
           python - <<'PY'
@@ -53,39 +55,11 @@ jobs:
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
-      - name: Restore persistent Haghyar signing key
-        env:
-          HAGHYAR_KEYSTORE_B64: ${{ secrets.HAGHYAR_KEYSTORE_B64 }}
-        run: |
-          if [ -n "$HAGHYAR_KEYSTORE_B64" ]; then
-            echo "$HAGHYAR_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/haghyar-release.jks"
-            echo "HAGHYAR_USE_RELEASE_KEY=true" >> "$GITHUB_ENV"
-          else
-            echo "No persistent release key configured; using the repository-scoped persistent debug keystore."
-            mkdir -p "$HOME/.android"
-            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Haghyar Offline,O=Haghyar,C=IR"
-            echo "HAGHYAR_USE_RELEASE_KEY=false" >> "$GITHUB_ENV"
-          fi
-      - name: Build APK
+      - name: Build signed APK
         working-directory: haghyar/android
-        env:
-          HAGHYAR_STORE_FILE: ${{ runner.temp }}/haghyar-release.jks
-          HAGHYAR_STORE_PASSWORD: ${{ secrets.HAGHYAR_STORE_PASSWORD }}
-          HAGHYAR_KEY_ALIAS: ${{ secrets.HAGHYAR_KEY_ALIAS }}
-          HAGHYAR_KEY_PASSWORD: ${{ secrets.HAGHYAR_KEY_PASSWORD }}
-        run: |
-          if [ "$HAGHYAR_USE_RELEASE_KEY" = "true" ]; then
-            gradle assembleRelease --stacktrace
-          else
-            gradle assembleDebug --stacktrace
-          fi
+        run: gradle assembleRelease --stacktrace
       - name: Rename APK
-        run: |
-          if [ "$HAGHYAR_USE_RELEASE_KEY" = "true" ]; then
-            cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-v1.5.0.apk
-          else
-            cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.5.0.apk
-          fi
+        run: cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-v1.5.0.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
