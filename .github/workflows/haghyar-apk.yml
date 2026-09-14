@@ -32,10 +32,10 @@ jobs:
         working-directory: haghyar/android
         run: gradle assembleDebug --stacktrace
       - name: Rename APK
-        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-Offline-v0.5.apk
+        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.0.0.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Haghyar-Offline-APK-v0.5
-          path: Haghyar-Offline-v0.5.apk
+          name: Haghyar-APK-v1.0.0
+          path: Haghyar-v1.0.0.apk
           if-no-files-found: error
