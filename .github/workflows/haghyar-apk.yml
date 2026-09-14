@@ -18,13 +18,12 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re,sys
-          p=Path('haghyar/android/app/src/main/assets/v1.html')
+          import re
+          p=Path('haghyar/android/app/src/main/assets/v1_1.html')
           s=p.read_text(encoding='utf-8')
-          required=['property:','family:','debt:','work:','contract:','criminal:','business:','other:','HaghyarLegalIntake/4.0','v1.0.0','audit()','risk()','attachments']
+          required=['property:','family:','debt:','work:','contract:','criminal:','business:','other:','HaghyarLegalIntake/5.0','v1.1.0','audit()','risk(q)','deadlineSource','jalali_to_gregorian','saveDocx','بسته ZIP پرونده']
           missing=[x for x in required if x not in s]
-          if missing:
-              raise SystemExit('Missing required engine components: '+', '.join(missing))
+          if missing: raise SystemExit('Missing required engine components: '+', '.join(missing))
           m=re.search(r'<script>(.*)</script>',s,re.S)
           if not m: raise SystemExit('Script block missing')
           Path('/tmp/haghyar-engine.js').write_text(m.group(1),encoding='utf-8')
@@ -49,10 +48,10 @@ jobs:
         working-directory: haghyar/android
         run: gradle assembleDebug --stacktrace
       - name: Rename APK
-        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.0.0.apk
+        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.1.0.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Haghyar-APK-v1.0.0
-          path: Haghyar-v1.0.0.apk
+          name: Haghyar-APK-v1.1.0
+          path: Haghyar-v1.1.0.apk
           if-no-files-found: error
