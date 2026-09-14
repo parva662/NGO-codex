@@ -14,29 +14,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Validate interview engine
+      - name: Validate runtime and offline knowledge
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
           base=Path('haghyar/android/app/src/main/assets/v1_1.html').read_text(encoding='utf-8')
-          p12=Path('haghyar/android/app/src/main/assets/v1_2_patch.js').read_text(encoding='utf-8')
-          p13=Path('haghyar/android/app/src/main/assets/v1_3_patch.js').read_text(encoding='utf-8')
+          core=Path('haghyar/android/app/src/main/assets/v1_2_patch.js').read_text(encoding='utf-8')
+          kb=Path('haghyar/android/app/src/main/assets/v1_4_knowledge.js').read_text(encoding='utf-8')
           required=['property:','family:','debt:','work:','contract:','criminal:','business:','other:','jalali_to_gregorian','handoverClause']
           miss=[x for x in required if x not in base]
-          miss += [x for x in ['earlyTerminationReason','ready_for_ai','savePdfBundle'] if x not in p12]
-          miss += [x for x in ['1.3.0','HaghyarLegalIntake/7.0','HaghyarQA','arrearsAmountKnown','hy-help','financial_wording'] if x not in p13]
-          if miss: raise SystemExit('Missing required v1.3 components: '+', '.join(miss))
+          miss += [x for x in ['1.4.0','HaghyarLegalIntake/8.0','earlyTerminationReason','arrearsAmountKnown','ready_for_ai','file:///android_asset/v1_4_knowledge.js'] if x not in core]
+          miss += [x for x in ['IR-offline-2026.09.15','راهنمای حقوقی آفلاین','property|اجاره و ودیعه|استرداد ودیعه','criminal|کلاهبرداری','other|مالیاتی'] if x not in kb]
+          if miss: raise SystemExit('Missing v1.4 runtime components: '+', '.join(miss))
           m=re.search(r'<script>(.*)</script>',base,re.S)
           if not m: raise SystemExit('Base script missing')
-          Path('/tmp/haghyar-base.js').write_text(m.group(1),encoding='utf-8')
-          Path('/tmp/haghyar-p12.js').write_text(p12,encoding='utf-8')
-          Path('/tmp/haghyar-p13.js').write_text(p13,encoding='utf-8')
+          Path('/tmp/base.js').write_text(m.group(1),encoding='utf-8')
+          Path('/tmp/core.js').write_text(core,encoding='utf-8')
+          Path('/tmp/kb.js').write_text(kb,encoding='utf-8')
           PY
-          node --check /tmp/haghyar-base.js
-          node --check /tmp/haghyar-p12.js
-          node --check /tmp/haghyar-p13.js
-      - name: Run scenario QA
+          node --check /tmp/base.js
+          node --check /tmp/core.js
+          node --check /tmp/kb.js
+      - name: Run full offline scenario QA
         working-directory: haghyar/android
         run: node qa_runner.js
       - name: Set up JDK 17
@@ -57,10 +57,10 @@ jobs:
         working-directory: haghyar/android
         run: gradle assembleDebug --stacktrace
       - name: Rename APK
-        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.3.0.apk
+        run: cp haghyar/android/app/build/outputs/apk/debug/app-debug.apk Haghyar-v1.4.0.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Haghyar-APK-v1.3.0
-          path: Haghyar-v1.3.0.apk
+          name: Haghyar-APK-v1.4.0
+          path: Haghyar-v1.4.0.apk
           if-no-files-found: error
