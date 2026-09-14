@@ -3,14 +3,25 @@ plugins { id 'com.android.application' }
 android {
     namespace 'ir.haghyar.offline'
     compileSdk 35
+    signingConfigs {
+        haghyarDev {
+            storeFile file('../haghyar-dev.jks')
+            storePassword 'haghyar-dev-2026'
+            keyAlias 'haghyar'
+            keyPassword 'haghyar-dev-2026'
+        }
+    }
     defaultConfig {
-        // Keep this applicationId permanently stable so Android treats every
-        // future Haghyar APK as an update instead of a different application.
+        // Never change applicationId for this installation line.
         applicationId 'ir.haghyar.offline'
         minSdk 24
         targetSdk 35
         versionCode 11
         versionName '1.5.0'
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.haghyarDev }
+        release { signingConfig signingConfigs.haghyarDev; minifyEnabled false }
     }
 }
 dependencies { implementation 'androidx.core:core:1.15.0' }
