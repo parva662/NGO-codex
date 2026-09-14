@@ -7,8 +7,8 @@ android {
         applicationId 'ir.haghyar.offline'
         minSdk 24
         targetSdk 35
-        versionCode 7
-        versionName '1.1.0'
+        versionCode 8
+        versionName '1.2.0'
     }
 }
 dependencies { implementation 'androidx.core:core:1.15.0' }
