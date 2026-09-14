@@ -22,62 +22,15 @@ import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
   private WebView webView;
-
   @Override public void onCreate(Bundle b) {
-    super.onCreate(b);
-    webView = new WebView(this);
-    setContentView(webView);
-    WebSettings s = webView.getSettings();
-    s.setJavaScriptEnabled(true);
-    s.setDomStorageEnabled(true);
-    s.setAllowFileAccess(true);
-    webView.addJavascriptInterface(new Bridge(), "Android");
-    webView.loadUrl("file:///android_asset/index.html");
+    super.onCreate(b); webView=new WebView(this); setContentView(webView);
+    WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setAllowFileAccess(true);
+    webView.addJavascriptInterface(new Bridge(),"Android"); webView.loadUrl("file:///android_asset/v4.html");
   }
-
-  @Override public void onBackPressed() {
-    if (webView.canGoBack()) webView.goBack(); else super.onBackPressed();
-  }
-
-  private void shareFile(File f, String mime) {
-    Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".files", f);
-    Intent in = new Intent(Intent.ACTION_SEND);
-    in.setType(mime);
-    in.putExtra(Intent.EXTRA_STREAM, uri);
-    in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-    startActivity(Intent.createChooser(in, "ارسال فایل پرونده"));
-  }
-
+  @Override public void onBackPressed(){if(webView.canGoBack())webView.goBack();else super.onBackPressed();}
+  private void shareFile(File f,String mime){Uri uri=FileProvider.getUriForFile(this,getPackageName()+".files",f);Intent in=new Intent(Intent.ACTION_SEND);in.setType(mime);in.putExtra(Intent.EXTRA_STREAM,uri);in.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(Intent.createChooser(in,"ارسال فایل پرونده"));}
   public class Bridge {
-    @JavascriptInterface public void saveFile(String name, String content, String mime) {
-      try {
-        File dir = new File(getExternalFilesDir(null), "exports"); dir.mkdirs();
-        File f = new File(dir, name);
-        try (FileOutputStream os = new FileOutputStream(f)) { os.write(content.getBytes(StandardCharsets.UTF_8)); }
-        shareFile(f, mime);
-      } catch (Exception e) { Toast.makeText(MainActivity.this, "خطا در ساخت فایل", Toast.LENGTH_LONG).show(); }
-    }
-
-    @JavascriptInterface public void savePdf(String name, String content) {
-      try {
-        File dir = new File(getExternalFilesDir(null), "exports"); dir.mkdirs();
-        File f = new File(dir, name);
-        final int pageWidth=595,pageHeight=842,margin=44,contentWidth=pageWidth-margin*2,contentHeight=pageHeight-margin*2;
-        TextPaint paint=new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
-        paint.setColor(android.graphics.Color.rgb(25,31,42)); paint.setTextSize(12.5f); paint.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.NORMAL));
-        PdfDocument pdf=new PdfDocument(); String remaining=content==null?"":content; int pageNo=1;
-        while(!remaining.isEmpty()) {
-          StaticLayout full=StaticLayout.Builder.obtain(remaining,0,remaining.length(),paint,contentWidth).setAlignment(Layout.Alignment.ALIGN_NORMAL).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL).setLineSpacing(3.5f,1.12f).setIncludePad(true).build();
-          int fitLine=full.getLineCount()-1;
-          for(int i=0;i<full.getLineCount();i++){if(full.getLineBottom(i)>contentHeight){fitLine=Math.max(0,i-1);break;}}
-          int end=full.getLineEnd(fitLine); if(end<=0||end>remaining.length())end=Math.min(remaining.length(),1000);
-          String pageText=remaining.substring(0,end).trim(); remaining=remaining.substring(end).trim();
-          StaticLayout pageLayout=StaticLayout.Builder.obtain(pageText,0,pageText.length(),paint,contentWidth).setAlignment(Layout.Alignment.ALIGN_NORMAL).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL).setLineSpacing(3.5f,1.12f).setIncludePad(true).build();
-          PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(pageWidth,pageHeight,pageNo).create(); PdfDocument.Page page=pdf.startPage(info); Canvas canvas=page.getCanvas(); canvas.save(); canvas.translate(margin,margin); pageLayout.draw(canvas); canvas.restore(); pdf.finishPage(page); pageNo++;
-        }
-        if(pageNo==1){PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(pageWidth,pageHeight,1).create();PdfDocument.Page page=pdf.startPage(info);pdf.finishPage(page);}
-        try(FileOutputStream os=new FileOutputStream(f)){pdf.writeTo(os);} pdf.close(); shareFile(f,"application/pdf");
-      } catch(Exception e){Toast.makeText(MainActivity.this,"خطا در ساخت PDF",Toast.LENGTH_LONG).show();}
-    }
+    @JavascriptInterface public void saveFile(String name,String content,String mime){try{File dir=new File(getExternalFilesDir(null),"exports");dir.mkdirs();File f=new File(dir,name);try(FileOutputStream os=new FileOutputStream(f)){os.write(content.getBytes(StandardCharsets.UTF_8));}shareFile(f,mime);}catch(Exception e){Toast.makeText(MainActivity.this,"خطا در ساخت فایل",Toast.LENGTH_LONG).show();}}
+    @JavascriptInterface public void savePdf(String name,String content){try{File dir=new File(getExternalFilesDir(null),"exports");dir.mkdirs();File f=new File(dir,name);final int w=595,h=842,m=44,cw=w-m*2,ch=h-m*2;TextPaint paint=new TextPaint(TextPaint.ANTI_ALIAS_FLAG);paint.setColor(android.graphics.Color.rgb(25,31,42));paint.setTextSize(12.5f);paint.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.NORMAL));PdfDocument pdf=new PdfDocument();String rem=content==null?"":content;int pn=1;while(!rem.isEmpty()){StaticLayout full=StaticLayout.Builder.obtain(rem,0,rem.length(),paint,cw).setAlignment(Layout.Alignment.ALIGN_NORMAL).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL).setLineSpacing(3.5f,1.12f).setIncludePad(true).build();int fit=full.getLineCount()-1;for(int i=0;i<full.getLineCount();i++){if(full.getLineBottom(i)>ch){fit=Math.max(0,i-1);break;}}int end=full.getLineEnd(fit);if(end<=0||end>rem.length())end=Math.min(rem.length(),1000);String pt=rem.substring(0,end).trim();rem=rem.substring(end).trim();StaticLayout pl=StaticLayout.Builder.obtain(pt,0,pt.length(),paint,cw).setAlignment(Layout.Alignment.ALIGN_NORMAL).setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_RTL).setLineSpacing(3.5f,1.12f).setIncludePad(true).build();PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(w,h,pn).create();PdfDocument.Page page=pdf.startPage(info);Canvas canvas=page.getCanvas();canvas.save();canvas.translate(m,m);pl.draw(canvas);canvas.restore();pdf.finishPage(page);pn++;}if(pn==1){PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(w,h,1).create();PdfDocument.Page page=pdf.startPage(info);pdf.finishPage(page);}try(FileOutputStream os=new FileOutputStream(f)){pdf.writeTo(os);}pdf.close();shareFile(f,"application/pdf");}catch(Exception e){Toast.makeText(MainActivity.this,"خطا در ساخت PDF",Toast.LENGTH_LONG).show();}}
   }
 }
