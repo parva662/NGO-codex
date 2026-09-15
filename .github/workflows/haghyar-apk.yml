@@ -33,7 +33,6 @@ jobs:
           for x in ['@JavascriptInterface public void save(', '@JavascriptInterface public void savePdf(', '@JavascriptInterface public void saveDocx(', '@JavascriptInterface public void saveZip(', '@JavascriptInterface public void exitApp(', '@JavascriptInterface public boolean appLockAvailable(', '@JavascriptInterface public void setAppLock(', '@JavascriptInterface public void setSecureDisplay(']: assert x in main, 'missing bridge '+x
           assert 'BiometricPrompt' in main and 'DEVICE_CREDENTIAL' in main and 'FLAG_SECURE' in main
           assert "androidx.biometric:biometric" in gradle
-          # Release must contain and execute the final integration layer, not merely ship an unused asset.
           assert 'v2_post_integration.js' in main, 'post integration asset exists but MainActivity does not load it'
           assert 'aiReadyExport:true' in post and 'appLockUI:true' in post
           assert 'B.aiReady(rc)' in post, 'AI-ready export is not wired to the frozen schema builder'
@@ -42,6 +41,7 @@ jobs:
           cd haghyar/android
           node qa_help_coverage.js
           node qa_ui_contract.js
+          node qa_runtime_interaction.js
           node qa_commercial_50x.js
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17'}
