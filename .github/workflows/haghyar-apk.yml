@@ -35,6 +35,7 @@ jobs:
           PY
           cd haghyar/android
           node qa_help_coverage.js
+          node qa_ui_contract.js
           node qa_commercial_50x.js
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17'}
