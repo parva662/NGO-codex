@@ -34,7 +34,7 @@ jobs:
           assert "androidx.biometric:biometric" in gradle
           PY
           cd haghyar/android
-          node qa_runner.js
+          node qa_help_coverage.js
           node qa_commercial_50x.js
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17'}
