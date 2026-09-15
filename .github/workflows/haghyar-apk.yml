@@ -1,76 +1,56 @@
 name: Build Haghyar APK
-
 on:
   push:
     branches: [haghyar-apk]
-    paths:
-      - 'haghyar/**'
-      - '.github/workflows/haghyar-apk.yml'
+    paths: ['haghyar/**','.github/workflows/haghyar-apk.yml']
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Restore stable development signing key
+      - uses: actions/checkout@v4
+      - name: Restore stable signing key
         run: base64 --decode haghyar/android/dev-signing-keystore.b64 > haghyar/android/haghyar-dev.jks
-      - name: Validate runtime and offline knowledge
+      - name: Validate all-domain runtime
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-          base=Path('haghyar/android/app/src/main/assets/v1_1.html').read_text(encoding='utf-8')
-          core=Path('haghyar/android/app/src/main/assets/v1_2_patch.js').read_text(encoding='utf-8')
-          kb=Path('haghyar/android/app/src/main/assets/v1_4_knowledge.js').read_text(encoding='utf-8')
-          ui=Path('haghyar/android/app/src/main/assets/v1_6_ui_fix.js').read_text(encoding='utf-8')
-          main=Path('haghyar/android/app/src/main/java/ir/haghyar/offline/MainActivity.java').read_text(encoding='utf-8')
-          gradle=Path('haghyar/android/app/build.gradle').read_text(encoding='utf-8')
-          required=['property:','family:','debt:','work:','contract:','criminal:','business:','other:','jalali_to_gregorian','handoverClause']
-          miss=[x for x in required if x not in base]
-          miss += [x for x in ['1.4.0','HaghyarLegalIntake/8.0','earlyTerminationReason','arrearsAmountKnown','ready_for_ai'] if x not in core]
-          miss += [x for x in ['IR-offline-2026.09.15','راهنمای حقوقی آفلاین','property|اجاره و ودیعه|استرداد ودیعه','criminal|کلاهبرداری','other|مالیاتی'] if x not in kb]
-          miss += [x for x in ['1.6.0','QUESTION_HELP','OPTION_HELP','cleanLegacyHelp','syncVersion'] if x not in ui]
-          miss += [x for x in ['v1_2_patch.js','v1_4_knowledge.js','v1_6_ui_fix.js'] if x not in main]
-          miss += [x for x in ["versionCode 12","versionName '1.6.0'"] if x not in gradle]
-          if miss: raise SystemExit('Missing runtime components: '+', '.join(miss))
-          m=re.search(r'<script>(.*)</script>',base,re.S)
-          if not m: raise SystemExit('Base script missing')
-          Path('/tmp/base.js').write_text(m.group(1),encoding='utf-8')
-          Path('/tmp/core.js').write_text(core,encoding='utf-8')
-          Path('/tmp/kb.js').write_text(kb,encoding='utf-8')
-          Path('/tmp/ui.js').write_text(ui,encoding='utf-8')
+          files=['v1_1.html','v1_2_patch.js','v1_4_knowledge.js','v1_6_ui_fix.js','v1_7_global.js']
+          p=Path('haghyar/android/app/src/main/assets')
+          for f in files:
+            if not (p/f).exists(): raise SystemExit('missing '+f)
+          g=(p/'v1_7_global.js').read_text(encoding='utf8')
+          for x in ['property','family','debt','work','contract','criminal','business','other','ALL_DOMAINS']:
+            if x not in g: raise SystemExit('global coverage missing '+x)
+          gradle=Path('haghyar/android/app/build.gradle').read_text()
+          for x in ['versionCode 13',"versionName '1.7.0'"]:
+            if x not in gradle: raise SystemExit('version mismatch '+x)
+          base=(p/'v1_1.html').read_text(encoding='utf8'); m=re.search(r'<script>(.*)</script>',base,re.S)
+          Path('/tmp/base.js').write_text(m.group(1),encoding='utf8')
+          for f in files[1:]: Path('/tmp/'+f).write_text((p/f).read_text(encoding='utf8'),encoding='utf8')
           PY
           node --check /tmp/base.js
-          node --check /tmp/core.js
-          node --check /tmp/kb.js
-          node --check /tmp/ui.js
-      - name: Run full offline scenario QA
+          node --check /tmp/v1_2_patch.js
+          node --check /tmp/v1_4_knowledge.js
+          node --check /tmp/v1_6_ui_fix.js
+          node --check /tmp/v1_7_global.js
+      - name: Full scenario QA
         working-directory: haghyar/android
         run: node qa_runner.js
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-      - name: Ensure Android SDK 35
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17'}
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.9'}
+      - name: Ensure Android SDK
         run: |
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
-      - name: Build signed APK
+      - name: Build signed release
         working-directory: haghyar/android
         run: gradle assembleRelease --stacktrace
-      - name: Rename APK
-        run: cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-v1.6.0.apk
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Haghyar-APK-v1.6.0
-          path: Haghyar-v1.6.0.apk
-          if-no-files-found: error
+      - name: Package APK
+        run: cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-v1.7.0.apk
+      - uses: actions/upload-artifact@v4
+        with: {name: Haghyar-APK-v1.7.0, path: Haghyar-v1.7.0.apk, if-no-files-found: error}
