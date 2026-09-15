@@ -11,31 +11,30 @@ jobs:
       - uses: actions/checkout@v4
       - name: Restore stable signing key
         run: base64 --decode haghyar/android/dev-signing-keystore.b64 > haghyar/android/haghyar-dev.jks
-      - name: Validate all-domain runtime
+      - name: Validate runtime wiring and all-domain policy
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-          files=['v1_1.html','v1_2_patch.js','v1_4_knowledge.js','v1_6_ui_fix.js','v1_7_global.js']
           p=Path('haghyar/android/app/src/main/assets')
-          for f in files:
-            if not (p/f).exists(): raise SystemExit('missing '+f)
-          g=(p/'v1_7_global.js').read_text(encoding='utf8')
-          for x in ['property','family','debt','work','contract','criminal','business','other','ALL_DOMAINS']:
-            if x not in g: raise SystemExit('global coverage missing '+x)
+          main=Path('haghyar/android/app/src/main/java/ir/haghyar/offline/MainActivity.java').read_text(encoding='utf8')
+          ui=(p/'v1_6_ui_fix.js').read_text(encoding='utf8')
           gradle=Path('haghyar/android/app/build.gradle').read_text()
-          for x in ['versionCode 13',"versionName '1.7.0'"]:
-            if x not in gradle: raise SystemExit('version mismatch '+x)
-          base=(p/'v1_1.html').read_text(encoding='utf8'); m=re.search(r'<script>(.*)</script>',base,re.S)
+          assert 'readAsset("v1_6_ui_fix.js")' in main, 'FINAL UI PATCH IS NOT WIRED INTO ANDROID RUNTIME'
+          for x in ['property','family','debt','work','contract','criminal','business','other','singleHelp:true','offlineKnowledge:true',"V='1.8.0'"]:
+            assert x in ui, 'missing global runtime component '+x
+          assert 'versionCode 14' in gradle and "versionName '1.8.0'" in gradle
+          assert "removeLegacy(root)" in ui and "root.querySelectorAll('.hyFQ').forEach" in ui
+          base=(p/'v1_1.html').read_text(encoding='utf8');m=re.search(r'<script>(.*)</script>',base,re.S);assert m
           Path('/tmp/base.js').write_text(m.group(1),encoding='utf8')
-          for f in files[1:]: Path('/tmp/'+f).write_text((p/f).read_text(encoding='utf8'),encoding='utf8')
+          for f in ['v1_2_patch.js','v1_4_knowledge.js','v1_6_ui_fix.js']:
+            Path('/tmp/'+f).write_text((p/f).read_text(encoding='utf8'),encoding='utf8')
           PY
           node --check /tmp/base.js
           node --check /tmp/v1_2_patch.js
           node --check /tmp/v1_4_knowledge.js
           node --check /tmp/v1_6_ui_fix.js
-          node --check /tmp/v1_7_global.js
-      - name: Full scenario QA
+      - name: Full offline legal scenario QA
         working-directory: haghyar/android
         run: node qa_runner.js
       - uses: actions/setup-java@v4
@@ -50,7 +49,12 @@ jobs:
       - name: Build signed release
         working-directory: haghyar/android
         run: gradle assembleRelease --stacktrace
-      - name: Package APK
-        run: cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-v1.7.0.apk
+      - name: Verify APK payload
+        run: |
+          cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-v1.8.0.apk
+          unzip -l Haghyar-v1.8.0.apk | grep -q 'assets/v1_6_ui_fix.js'
+          unzip -p Haghyar-v1.8.0.apk assets/v1_6_ui_fix.js | grep -q "V='1.8.0'"
+          unzip -p Haghyar-v1.8.0.apk assets/v1_6_ui_fix.js | grep -q 'singleHelp:true'
+          sha256sum Haghyar-v1.8.0.apk
       - uses: actions/upload-artifact@v4
-        with: {name: Haghyar-APK-v1.7.0, path: Haghyar-v1.7.0.apk, if-no-files-found: error}
+        with: {name: Haghyar-APK-v1.8.0, path: Haghyar-v1.8.0.apk, if-no-files-found: error}
