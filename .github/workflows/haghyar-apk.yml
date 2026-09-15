@@ -28,7 +28,7 @@ jobs:
           for x in ['property','family','debt','work','contract','criminal','business','other','singleHelp:true','offlineKnowledge:true',"V='1.8.0'"]:
             assert x in ui, 'missing '+x
           PY
-          node haghyar/android/qa_runner.js
+          cd haghyar/android && node qa_runner.js
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17'}
       - uses: gradle/actions/setup-gradle@v4
