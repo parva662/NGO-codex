@@ -22,7 +22,7 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.view.WindowManager;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentActivity;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
@@ -42,7 +42,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends FragmentActivity {
   private WebView webView; private static final int PICK_FILE_REQUEST=4105; private static final String KEY_ALIAS="haghyar_local_key_v1",PREFS="haghyar_secure_store",LOCK_PREF="app_lock_enabled"; private String pendingQuestionId=""; private boolean authenticated=false,promptVisible=false,backgrounded=false;
   @Override public void onCreate(Bundle b){super.onCreate(b);webView=new WebView(this);webView.setBackgroundColor(Color.rgb(245,247,251));setContentView(webView);WebSettings s=webView.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setAllowFileAccess(true);s.setDefaultTextEncodingName("utf-8");webView.setWebViewClient(new WebViewClient(){@Override public void onPageFinished(WebView v,String u){super.onPageFinished(v,u);if(u!=null&&u.endsWith("v1_1.html"))loadPatch(v,"v1_2_patch.js",()->loadPatch(v,"v1_4_knowledge.js",()->loadPatch(v,"v2_commercial_core.js",()->loadPatch(v,"v2_help.js",()->loadPatch(v,"v1_6_ui_fix.js",()->loadPatch(v,"v2_lawyer_brief.js",()->loadPatch(v,"v2_commercial_ui.js",null)))))));}});webView.addJavascriptInterface(new Bridge(),"Android");webView.loadUrl("file:///android_asset/v1_1.html");}
   @Override protected void onResume(){super.onResume();if(backgrounded){backgrounded=false;authenticated=false;}if(isAppLockEnabled()&&!authenticated)webView.postDelayed(this::authenticateForUnlock,180);}
