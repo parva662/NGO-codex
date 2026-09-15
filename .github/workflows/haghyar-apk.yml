@@ -1,4 +1,4 @@
-name: Build Haghyar APK
+name: Build Haghyar Commercial MVP
 on:
   push:
     branches: [haghyar-apk]
@@ -9,23 +9,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Restore stable signing key
+      - name: Restore development signing key
         run: base64 --decode haghyar/android/dev-signing-keystore.b64 > haghyar/android/haghyar-dev.jks
-      - name: Validate final standalone runtime
+      - name: Commercial QA gates
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('haghyar/android/app/src/main/assets')
           main=Path('haghyar/android/app/src/main/java/ir/haghyar/offline/MainActivity.java').read_text(encoding='utf8')
           ui=(p/'v1_6_ui_fix.js').read_text(encoding='utf8')
+          core=(p/'v2_commercial_core.js').read_text(encoding='utf8')
           gradle=Path('haghyar/android/app/build.gradle').read_text()
+          manifest=Path('haghyar/android/app/src/main/AndroidManifest.xml').read_text()
           assert "applicationId 'ir.haghyar.finalapp'" in gradle
-          assert 'versionCode 181' in gradle and "versionName '1.8.1-final'" in gradle
-          assert "V='1.8.1'" in ui and 'exportsFixed:true' in ui
+          assert 'versionCode 200' in gradle and "versionName '2.0.0-commercial-beta'" in gradle
+          assert "V='2.0.0'" in ui and 'commercial:true' in ui and 'autosave:true' in ui
+          assert "VERSION='2.0.0'" in core
+          for d in ['property','family','debt','work','contract','criminal','business','other']: assert "'"+d+"'" in core
+          assert 'android:allowBackup="false"' in manifest and 'android:usesCleartextTraffic="false"' in manifest
           for x in ['a.save(', 'a.savePdf(', 'a.saveDocx(', 'a.saveZip(']: assert x in ui, 'missing export '+x
-          for x in ['@JavascriptInterface public void save(', '@JavascriptInterface public void savePdf(', '@JavascriptInterface public void saveDocx(', '@JavascriptInterface public void saveZip(']: assert x in main, 'missing bridge '+x
+          for x in ['@JavascriptInterface public void save(', '@JavascriptInterface public void savePdf(', '@JavascriptInterface public void saveDocx(', '@JavascriptInterface public void saveZip(', '@JavascriptInterface public void exitApp(']: assert x in main, 'missing bridge '+x
           PY
-          cd haghyar/android && node qa_runner.js
+          cd haghyar/android
+          node qa_runner.js
+          node qa_commercial_50x.js
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17'}
       - uses: gradle/actions/setup-gradle@v4
@@ -35,16 +42,22 @@ jobs:
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
-      - name: Build standalone signed release
+      - name: Build APK and AAB
         working-directory: haghyar/android
-        run: gradle assembleRelease --stacktrace
-      - name: Verify standalone APK
+        run: gradle assembleRelease bundleRelease --stacktrace
+      - name: Verify commercial artifacts
         run: |
-          cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-FINAL-v1.8.1.apk
-          unzip -p Haghyar-FINAL-v1.8.1.apk assets/v1_6_ui_fix.js | grep -q "V='1.8.1'"
-          unzip -p Haghyar-FINAL-v1.8.1.apk assets/v1_6_ui_fix.js | grep -q 'exportsFixed:true'
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Haghyar-FINAL-v1.8.1.apk | tee /tmp/badging.txt
-          grep -q "package: name='ir.haghyar.finalapp' versionCode='181' versionName='1.8.1-final'" /tmp/badging.txt
-          sha256sum Haghyar-FINAL-v1.8.1.apk
+          cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-Commercial-MVP-v2.0.0.apk
+          cp haghyar/android/app/build/outputs/bundle/release/app-release.aab Haghyar-Commercial-MVP-v2.0.0.aab
+          unzip -p Haghyar-Commercial-MVP-v2.0.0.apk assets/v2_commercial_core.js | grep -q "VERSION='2.0.0'"
+          unzip -p Haghyar-Commercial-MVP-v2.0.0.apk assets/v1_6_ui_fix.js | grep -q "V='2.0.0'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Haghyar-Commercial-MVP-v2.0.0.apk | tee /tmp/badging.txt
+          grep -q "package: name='ir.haghyar.finalapp' versionCode='200' versionName='2.0.0-commercial-beta'" /tmp/badging.txt
+          sha256sum Haghyar-Commercial-MVP-v2.0.0.apk Haghyar-Commercial-MVP-v2.0.0.aab
       - uses: actions/upload-artifact@v4
-        with: {name: Haghyar-FINAL-Standalone-v1.8.1, path: Haghyar-FINAL-v1.8.1.apk, if-no-files-found: error}
+        with:
+          name: Haghyar-Commercial-MVP-v2.0.0
+          path: |
+            Haghyar-Commercial-MVP-v2.0.0.apk
+            Haghyar-Commercial-MVP-v2.0.0.aab
+          if-no-files-found: error
