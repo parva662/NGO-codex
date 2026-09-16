@@ -1,4 +1,4 @@
-name: Build Haghyar Commercial MVP
+name: Build DANJUR Commercial MVP
 on:
   push:
     branches: [haghyar-apk]
@@ -57,18 +57,18 @@ jobs:
         run: gradle assembleRelease bundleRelease --stacktrace
       - name: Verify commercial artifacts
         run: |
-          cp haghyar/android/app/build/outputs/apk/release/app-release.apk Haghyar-Commercial-MVP-v2.0.0.apk
-          cp haghyar/android/app/build/outputs/bundle/release/app-release.aab Haghyar-Commercial-MVP-v2.0.0.aab
-          unzip -p Haghyar-Commercial-MVP-v2.0.0.apk assets/v2_commercial_core.js | grep -q "VERSION='2.0.0'"
-          unzip -p Haghyar-Commercial-MVP-v2.0.0.apk assets/v2_commercial_ui.js | grep -q "const V='2.0.0'"
-          unzip -p Haghyar-Commercial-MVP-v2.0.0.apk assets/v2_post_integration.js | grep -q "aiReadyExport:true"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Haghyar-Commercial-MVP-v2.0.0.apk | tee /tmp/badging.txt
+          cp haghyar/android/app/build/outputs/apk/release/app-release.apk DANJUR-Commercial-MVP-v2.0.0.apk
+          cp haghyar/android/app/build/outputs/bundle/release/app-release.aab DANJUR-Commercial-MVP-v2.0.0.aab
+          unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_commercial_core.js | grep -q "VERSION='2.0.0'"
+          unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_commercial_ui.js | grep -q "const V='2.0.0'"
+          unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_post_integration.js | grep -q "aiReadyExport:true"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging DANJUR-Commercial-MVP-v2.0.0.apk | tee /tmp/badging.txt
           grep -q "package: name='ir.haghyar.finalapp' versionCode='200' versionName='2.0.0-commercial-beta'" /tmp/badging.txt
-          sha256sum Haghyar-Commercial-MVP-v2.0.0.apk Haghyar-Commercial-MVP-v2.0.0.aab
+          sha256sum DANJUR-Commercial-MVP-v2.0.0.apk DANJUR-Commercial-MVP-v2.0.0.aab
       - uses: actions/upload-artifact@v4
         with:
-          name: Haghyar-Commercial-MVP-v2.0.0
+          name: DANJUR-Commercial-MVP-v2.0.0
           path: |
-            Haghyar-Commercial-MVP-v2.0.0.apk
-            Haghyar-Commercial-MVP-v2.0.0.aab
+            DANJUR-Commercial-MVP-v2.0.0.apk
+            DANJUR-Commercial-MVP-v2.0.0.aab
           if-no-files-found: error
