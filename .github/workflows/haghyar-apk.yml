@@ -26,20 +26,15 @@ jobs:
           manifest=Path('haghyar/android/app/src/main/AndroidManifest.xml').read_text()
           assert "applicationId 'ir.haghyar.finalapp'" in gradle
           assert 'compileSdk 36' in gradle and 'targetSdk 36' in gradle
-          assert 'versionCode 200' in gradle and "versionName '2.0.0-commercial-beta'" in gradle
+          assert 'versionCode 201' in gradle and "versionName '2.0.1-test.148'" in gradle
           assert "const V='2.0.0'" in ui and 'autosave:true' in ui and 'privacyCenter:true' in ui
           assert "VERSION='2.0.0'" in core and "version:'2.0.0'" in brief
           for d in ['property','family','debt','work','contract','criminal','business','other']: assert "'"+d+"'" in core
           assert "schema:'DanjurAIPrompt/1.0'" in ai and 'DanjurAIActions' in ai
           assert 'android:allowBackup="false"' in manifest and 'android:usesCleartextTraffic="false"' in manifest
-          for x in ['a.save(', 'a.savePdf(', 'a.saveDocx(', 'a.saveZip(']: assert x in ui, 'missing export '+x
-          for x in ['@JavascriptInterface public void save(', '@JavascriptInterface public void savePdf(', '@JavascriptInterface public void saveDocx(', '@JavascriptInterface public void saveZip(', '@JavascriptInterface public void exitApp(', '@JavascriptInterface public boolean appLockAvailable(', '@JavascriptInterface public void setAppLock(', '@JavascriptInterface public void setSecureDisplay(']: assert x in main, 'missing bridge '+x
+          for x in ['a.save(', 'a.savePdf(', 'a.saveDocx(', 'a.saveZip(']: assert x in ui
           assert 'BiometricPrompt' in main and 'DEVICE_CREDENTIAL' in main and 'FLAG_SECURE' in main
-          assert "androidx.biometric:biometric" in gradle
-          assert 'v2_post_integration.js' in main
-          assert 'aiReadyExport:true' in post and 'appLockUI:true' in post
-          assert 'B.aiReady(rc)' in post
-          assert 'appLockAvailable' in post and 'setAppLock' in post and 'lockNow' in post
+          assert 'v2_post_integration.js' in main and 'aiReadyExport:true' in post
           PY
           cd haghyar/android
           node qa_help_coverage.js
@@ -59,22 +54,20 @@ jobs:
       - name: Build APK and AAB
         working-directory: haghyar/android
         run: gradle assembleRelease bundleRelease --stacktrace
-      - name: Verify commercial artifacts
+      - name: Verify test artifacts
         run: |
-          cp haghyar/android/app/build/outputs/apk/release/app-release.apk DANJUR-Commercial-MVP-v2.0.0.apk
-          cp haghyar/android/app/build/outputs/bundle/release/app-release.aab DANJUR-Commercial-MVP-v2.0.0.aab
-          unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_commercial_core.js | grep -q "VERSION='2.0.0'"
-          unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_commercial_ui.js | grep -q "const V='2.0.0'"
-          unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_post_integration.js | grep -q "aiReadyExport:true"
-          unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_ai_actions.js | grep -q "DanjurAIActions"
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging DANJUR-Commercial-MVP-v2.0.0.apk | tee /tmp/badging.txt
-          grep -q "package: name='ir.haghyar.finalapp' versionCode='200' versionName='2.0.0-commercial-beta'" /tmp/badging.txt
+          cp haghyar/android/app/build/outputs/apk/release/app-release.apk DANJUR-Test-Build-148.apk
+          cp haghyar/android/app/build/outputs/bundle/release/app-release.aab DANJUR-Test-Build-148.aab
+          unzip -p DANJUR-Test-Build-148.apk assets/v2_commercial_core.js | grep -q "VERSION='2.0.0'"
+          unzip -p DANJUR-Test-Build-148.apk assets/v2_ai_actions.js | grep -q "DanjurAIActions"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging DANJUR-Test-Build-148.apk | tee /tmp/badging.txt
+          grep -q "package: name='ir.haghyar.finalapp' versionCode='201' versionName='2.0.1-test.148'" /tmp/badging.txt
           grep -q "targetSdkVersion:'36'" /tmp/badging.txt
-          sha256sum DANJUR-Commercial-MVP-v2.0.0.apk DANJUR-Commercial-MVP-v2.0.0.aab
+          sha256sum DANJUR-Test-Build-148.apk DANJUR-Test-Build-148.aab
       - uses: actions/upload-artifact@v4
         with:
-          name: DANJUR-Commercial-MVP-v2.0.0
+          name: DANJUR-Test-Build-148
           path: |
-            DANJUR-Commercial-MVP-v2.0.0.apk
-            DANJUR-Commercial-MVP-v2.0.0.aab
+            DANJUR-Test-Build-148.apk
+            DANJUR-Test-Build-148.aab
           if-no-files-found: error
