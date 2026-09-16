@@ -21,6 +21,7 @@ jobs:
           core=(p/'v2_commercial_core.js').read_text(encoding='utf8')
           brief=(p/'v2_lawyer_brief.js').read_text(encoding='utf8')
           post=(p/'v2_post_integration.js').read_text(encoding='utf8')
+          ai=(p/'v2_ai_actions.js').read_text(encoding='utf8')
           gradle=Path('haghyar/android/app/build.gradle').read_text()
           manifest=Path('haghyar/android/app/src/main/AndroidManifest.xml').read_text()
           assert "applicationId 'ir.haghyar.finalapp'" in gradle
@@ -28,6 +29,7 @@ jobs:
           assert "const V='2.0.0'" in ui and 'autosave:true' in ui and 'privacyCenter:true' in ui
           assert "VERSION='2.0.0'" in core and "version:'2.0.0'" in brief
           for d in ['property','family','debt','work','contract','criminal','business','other']: assert "'"+d+"'" in core
+          assert "schema:'DanjurAIPrompt/1.0'" in ai and 'DanjurAIActions' in ai
           assert 'android:allowBackup="false"' in manifest and 'android:usesCleartextTraffic="false"' in manifest
           for x in ['a.save(', 'a.savePdf(', 'a.saveDocx(', 'a.saveZip(']: assert x in ui, 'missing export '+x
           for x in ['@JavascriptInterface public void save(', '@JavascriptInterface public void savePdf(', '@JavascriptInterface public void saveDocx(', '@JavascriptInterface public void saveZip(', '@JavascriptInterface public void exitApp(', '@JavascriptInterface public boolean appLockAvailable(', '@JavascriptInterface public void setAppLock(', '@JavascriptInterface public void setSecureDisplay(']: assert x in main, 'missing bridge '+x
@@ -43,6 +45,7 @@ jobs:
           node qa_ui_contract.js
           node qa_runtime_interaction.js
           node qa_commercial_50x.js
+          node qa_ai_actions.js
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17'}
       - uses: gradle/actions/setup-gradle@v4
@@ -62,6 +65,7 @@ jobs:
           unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_commercial_core.js | grep -q "VERSION='2.0.0'"
           unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_commercial_ui.js | grep -q "const V='2.0.0'"
           unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_post_integration.js | grep -q "aiReadyExport:true"
+          unzip -p DANJUR-Commercial-MVP-v2.0.0.apk assets/v2_ai_actions.js | grep -q "DanjurAIActions"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging DANJUR-Commercial-MVP-v2.0.0.apk | tee /tmp/badging.txt
           grep -q "package: name='ir.haghyar.finalapp' versionCode='200' versionName='2.0.0-commercial-beta'" /tmp/badging.txt
           sha256sum DANJUR-Commercial-MVP-v2.0.0.apk DANJUR-Commercial-MVP-v2.0.0.aab
