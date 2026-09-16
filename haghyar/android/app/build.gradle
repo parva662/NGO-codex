@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'ir.haghyar.offline'
-    compileSdk 35
+    compileSdk 36
     signingConfigs {
         haghyarDev {
             storeFile rootProject.file('haghyar-dev.jks')
@@ -14,7 +14,7 @@ android {
     defaultConfig {
         applicationId 'ir.haghyar.finalapp'
         minSdk 24
-        targetSdk 35
+        targetSdk 36
         versionCode 200
         versionName '2.0.0-commercial-beta'
     }
