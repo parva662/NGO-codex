@@ -31,5 +31,5 @@ ok(/Object\.entries\(C\)|Object\.keys\(C\)/.test(base),'domain definitions are n
 const calls=[...ui.matchAll(/onclick="([A-Za-z_$][\w$]*)\(/g)].map(m=>m[1]);
 const allowedBase=new Set(['home','historyPage']);
 for(const fn of new Set(calls)) ok(new RegExp('window\\.'+fn+'\\s*=').test(ui)||allowedBase.has(fn),'unresolved commercial click handler: '+fn);
-console.log(JSON.stringify({suite:'Haghyar Interactive UI Contract',clickHandlers:[...new Set(calls)].length,failures:fail},null,2));
+console.log(JSON.stringify({suite:'DANJUR Interactive UI Contract',clickHandlers:[...new Set(calls)].length,failures:fail},null,2));
 if(fail.length)process.exit(2);
